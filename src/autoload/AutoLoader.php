@@ -63,7 +63,7 @@ class autoload_AutoLoader
     {
       $this->storages[] = $storage;
       $content = $storage->load();
-      array_merge($this->index, $content);
+      $this->index = array_merge($this->index, $content);
 
       $added = true;
     }
