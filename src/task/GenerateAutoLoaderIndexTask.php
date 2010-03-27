@@ -93,9 +93,10 @@ class GenerateAutoLoaderIndexTask extends Task
     {
       foreach ($required as $file => $done)
       {
-        if ((false == $done) && file_exists($path . $file))
+        $fullName = $path . $file;
+        if ((false == $done) && file_exists($fullName))
         {
-          require_once $path . $file;
+          require_once $fullName;
           $required[$file] = true;
         }
       }
@@ -108,6 +109,7 @@ class GenerateAutoLoaderIndexTask extends Task
       {
         if (false == $done)
         {
+          $this->log('Cannot locate required filename: ' . $file, Project::MSG_ERR);
           $missing .= $file . ', ';
         }
       }
@@ -130,7 +132,7 @@ class GenerateAutoLoaderIndexTask extends Task
     }
     if ($this->indexPath->isDir())
     {
-      throw new BuildException('The GenerateAutoLoaderIndexTask detected that index path is directory! index path: ' . $this->indexPath);
+      throw new BuildException('The GenerateAutoLoaderIndexTask detected that index path refers to directory! index path: ' . $this->indexPath);
     }
     if ($this->indexPath->isFile() && (false == $this->indexPath->isWritable()))
     {
@@ -143,44 +145,78 @@ class GenerateAutoLoaderIndexTask extends Task
     $storage = null;
     if ($this->compression > 0)
     {
+      $this->log('Selected compressed file index storage', Project::MSG_VERBOSE);
       $storage = new autoload_CompressedFileIndexStorage($this->indexPath, $this->compression);
     }
     else
     {
+      $this->log('Selected file index storage', Project::MSG_VERBOSE);
       $storage = new autoload_FileIndexStorage($this->indexPath);
     }
 
-    $scanner = new autoload_TokenizerFileScanner();
-    $finalContent = array();
-    $counter = 0;
+    // do not use defaults
+    $scanner = new autoload_TokenizerFileScanner(false);
 
-    foreach ($this->filesets as $fs)
+    try
     {
-      $fsDir    = $fs->getDir($project);
-      $ds       = $fs->getDirectoryScanner($project);
-      $srcFiles = $ds->getIncludedFiles();
-      $oldDir   = getcwd();
+      $finalContent = array();
+      $counter      = 0;
 
-      // Change directory to File Set's one
-      chdir($fsDir);
+      $this->log('Processing file sets...', Project::MSG_VERBOSE);
 
-      foreach ($srcFiles as $file)
+      foreach ($this->filesets as $fs)
       {
-        $content = $scanner->scan($file, false);
-        $intersections = array_intersect_key($content, $finalContent);
+        $fsDir    = $fs->getDir($project);
+        $ds       = $fs->getDirectoryScanner($project);
+        $srcFiles = $ds->getIncludedFiles();
+        $oldDir   = getcwd();
+        if (false === $oldDir)
+        {
+          $error = error_get_last();
+          throw new BuildException('Cannot obtain current working directory! Error: ' . $error['message']);
+        }
+
+        // Change directory to File Set's one
+        if (false == chdir($fsDir))
+        {
+          $error = error_get_last();
+          throw new BuildException('Cannot change current working directory to ' . $fsDir . '! Error: ' . $error['message']);
+        }
+
+        $content = $scanner->scan($srcFiles, false);
+        // detect duplicates from different file sets
+        $intersections = array_intersect_key($finalContent, $content);
         if (false == empty($intersections))
         {
-          chdir($currentDir);
-          throw new BuildException('The GenerateAutoLoaderIndexTask detected that file set no. ' . $counter . ' contains class names that are already indexed! duplicates: ' . var_export($intersections, true));
+          throw new BuildException('The GenerateAutoLoaderIndexTask detected that file set no. ' . $counter . ' contains class names that are already indexed! Duplicates: ' . var_export($intersections, true));
         }
 
         $finalContent = $finalContent + $content;
+
+        if (false == chdir($oldDir))
+        {
+          $error = error_get_last();
+          throw new BuildException('Cannot change current working directory to ' . $oldDir . '! Error: ' . $error['message']);
+        }
+
+        $counter++;
       }
-      $counter++;
 
-      chdir($oldDir);
+      $this->log('Found ' . count($finalContent) . ' entries', Project::MSG_VERBOSE);
+
+      $storage->store($finalContent);
+
+      $this->log('All entries stored in ' . $this->indexPath, Project::MSG_VERBOSE);
     }
-
-    $storage->store($finalContent);
+    catch (BuildException $e)
+    {
+      throw $e;
+    }
+    catch (Exception $e)
+    {
+      throw new BuildException('The GenerateAutoLoaderIndexTask failed due to exception: ' . $e->getMessage(),
+                               $e,
+                               $this->getLocation());
+    }
   }
 }
