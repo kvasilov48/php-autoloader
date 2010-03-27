@@ -13,11 +13,12 @@ require_once dirname(__FILE__) . '/autoload/CompressedFileIndexStorage.php';
 require_once dirname(__FILE__) . '/autoload/TokenizerFileScanner.php';
 
 
-// get default index path
-$storagePath = autoload_get_default_index_path();
-$scanPath = dirname($storagePath);
+// get path to index storage
+$storagePath = autoload_get_index_path();
+$storage     = autoload_get_index_storage($storagePath);
+$scanPath    = dirname($storagePath);
 
-$storage = new autoload_CompressedFileIndexStorage(new SplFileInfo($storagePath));
-$scanner = new autoload_TokenizerFileScanner();
-$autoLoader = new autoload_AutoLoader();
+$scanner     = new autoload_TokenizerFileScanner();
+$autoLoader  = new autoload_AutoLoader();
+
 $autoLoader->scanAndStore($scanPath, $scanner, $storage);

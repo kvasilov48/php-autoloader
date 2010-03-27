@@ -10,13 +10,13 @@
 
 require_once dirname(__FILE__) . '/common.php';
 require_once dirname(__FILE__) . '/autoload/AutoLoader.php';
-require_once dirname(__FILE__) . '/autoload/CompressedFileIndexStorage.php';
 
 
-// get default index path
-$path = autoload_get_default_index_path();
+// get path to index storage
+$path    = autoload_get_index_path();
+// get storage
+$storage = autoload_get_index_storage($path);
 
-$storage = new autoload_CompressedFileIndexStorage(new SplFileInfo($path));
 $autoLoader = new autoload_AutoLoader();
 $autoLoader->addIndexStorage($storage);
 $autoLoader->register();
