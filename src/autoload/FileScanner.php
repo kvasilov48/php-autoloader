@@ -70,10 +70,9 @@ interface autoload_FileScanner
    * Scans given path in search of classes and interfaces.
    *
    * @param string  $path Path that will be scanned.
-   * @param boolean $useRealPath Determines whether returned index should have relative (default) or absolute
-   * filenames.
+   * @param boolean $enforceAbsolutePath Determines whether returned index should enforce absolute paths.
    *
    * @return array Returns index containing mapping between class names and file names.
    */
-  public function scan($path, $useRealPath = false);
+  public function scan($path, $enforceAbsolutePath = false);
 }

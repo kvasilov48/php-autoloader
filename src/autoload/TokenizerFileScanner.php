@@ -1,6 +1,6 @@
 <?php
 /**
- * FileScannerImpl
+ * TokenizerFileScanner
  *
  * @package   autoload
  * @author    M.Olszewski
@@ -32,7 +32,7 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
 
 
   /**
-   * Constructs instance of {@link autoload_FileScannerImpl}.
+   * Constructs instance of {@link autoload_TokenizerFileScanner}.
    *
    * @param boolean $useDefault Determines whether default extensions and exclusions should be used.
    */
@@ -103,7 +103,7 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
   /**
    * @see autoload_FileScanner::scan()
    */
-  public function scan($path, $useRealPath = false)
+  public function scan($path, $enforceAbsolutePath = false)
   {
     if (is_string($path) == false)
     {
@@ -113,28 +113,62 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
     {
       throw new InvalidArgumentException(__METHOD__ . '(): $path is not referencing existing file or directory! $path=' . $path);
     }
-
-    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path),
-                                           RecursiveIteratorIterator::SELF_FIRST);
+    if (is_bool($enforceAbsolutePath) == false)
+    {
+      throw new InvalidArgumentException(__METHOD__ . '(): $enforceAbsolutePath is not a boolean! $enforceAbsolutePath=' . $enforceAbsolutePath);
+    }
 
     $class2File = array();
 
-    foreach ($files as $fileName => $fileInfo)
+    if (is_dir($path))
     {
-      if ($useRealPath)
-      {
-        $fileName = $fileInfo->getRealPath();
-      }
-      if ($fileInfo->isFile() &&
-          $fileInfo->isReadable() &&
-          $this->checkIfIncluded($fileName) &&
-          $this->checkIfNotExcluded($fileName))
-      {
-        $this->scanFile($fileName, $fileInfo, $class2File);
-      }
+      $this->scanDirectory($path, $class2File, $enforceAbsolutePath);
+    }
+    else
+    {
+      $this->scanSingleFile($path, $class2File, $enforceAbsolutePath);
     }
 
     return $class2File;
+  }
+
+  private function scanDirectory($dirName, array& $class2File, $enforceAbsolutePath)
+  {
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dirName),
+                                           RecursiveIteratorIterator::SELF_FIRST);
+
+    foreach ($files as $fileName => $fileInfo)
+    {
+      if ($enforceAbsolutePath)
+      {
+        $fileName = $fileInfo->getRealPath();
+      }
+      if ($this->checkFile($fileInfo, $fileName))
+      {
+        $this->scanFileContent($fileName, $fileInfo, $class2File);
+      }
+    }
+  }
+
+  private function scanSingleFile($fileName, array& $class2File, $enforceAbsolutePath)
+  {
+    $fileInfo = new SplFileInfo($fileName);
+    if ($enforceAbsolutePath)
+    {
+      $fileName = $fileInfo->getRealPath();
+    }
+    if ($this->checkFile($fileInfo, $fileName))
+    {
+      $this->scanFileContent($fileName, $fileInfo, $class2File);
+    }
+  }
+
+  private function checkFile(SplFileInfo $fileInfo, $fileName)
+  {
+    return $fileInfo->isFile() &&
+           $fileInfo->isReadable() &&
+           $this->checkIfIncluded($fileName) &&
+           $this->checkIfNotExcluded($fileName);
   }
 
   private function checkIfIncluded($fileName)
@@ -167,7 +201,7 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
     return $notExcluded;
   }
 
-  private function scanFile($fileName, SplFileInfo $fileInfo, array& $class2File)
+  private function scanFileContent($fileName, SplFileInfo $fileInfo, array& $class2File)
   {
     $content = file_get_contents($fileName);
     if ($content !== false)
