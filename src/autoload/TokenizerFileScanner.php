@@ -267,7 +267,7 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
           $className = $tokens[$i][1];
           if (false == isSet($class2File[$className]))
           {
-            $class2File[$className] = $fileName;
+            $class2File[$className] = $this->dos2unix($fileName);
           }
           else
           {
@@ -278,5 +278,15 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
         break;
       }
     }
+  }
+
+  /*
+   * We don't want to use Windows-style paths as they don't work on Unix systems.
+   * On the other hand: Unix-style paths work fine on Windows - so we always store file names as Unix-style
+   * paths.
+   */
+  private function dos2unix($fileName)
+  {
+    return preg_replace('/\\\/', '/', $fileName);
   }
 }
