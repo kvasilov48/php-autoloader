@@ -75,7 +75,7 @@ class autoload_AutoLoader
   /**
    * Loads content from all defined index storages and registers this class on the SPL autoloader stack.
    *
-   * @return bool Returns true if registration was successful, false otherwise.
+   * @return boolean Returns true if registration was successful, false otherwise.
    */
   public function register()
   {
@@ -122,8 +122,6 @@ class autoload_AutoLoader
   /**
    * Scans given paths using specified scanner and stores them using specified storage.
    *
-   * This methods detects duplicated entries and throws SPL UnexpectedValueException.
-   *
    * @param string|array $paths All paths to scan. This parameter may be a string with single path or paths separated
    * by path separator or it can an array with multiple strings (each string is treated as single path, no
    * path separator is allowed).
@@ -132,43 +130,15 @@ class autoload_AutoLoader
    * @param boolean $enforceAbsolutePath Determines whether paths should be always stored as absolute.
    *
    * @return array Index content that has been found and stored.
+   * @throws InvalidArgumentException if any of the parameters is invalid.
    */
-  public function scanAndStore($paths, autoload_FileScanner $scanner, autoload_IndexStorage $storage, $enforceAbsolutePath = false)
+  public function scanAndStore($paths,
+                               autoload_FileScanner $scanner,
+                               autoload_IndexStorage $storage,
+                               $enforceAbsolutePath = false)
   {
-    if (is_string($paths))
-    {
-      $paths = explode(PATH_SEPARATOR, $paths);
-    }
-    if (is_array($paths) == false)
-    {
-      throw new InvalidArgumentException(__METHOD__ . '(): $paths is not an array! $paths=' . $paths);
-    }
-    foreach ($paths as $path)
-    {
-      if (is_string($path) == false)
-      {
-        throw new InvalidArgumentException(__METHOD__ . '(): $path is not a string! $path=' . $path);
-      }
-    }
-
-    $allIndexes = array();
-    foreach ($paths as $path)
-    {
-      $index = $scanner->scan($path, $enforceAbsolutePath);
-
-      // detect duplicates - no class name can be present in existing indexes and index from scanned path
-      $intersections = array_intersect_key($index, $allIndexes);
-      if (false == empty($intersections))
-      {
-        throw new UnexpectedValueException(__METHOD__ . '(): ' . $path . ' contains class names that are already indexed! duplicates: ' . var_export($intersections, true));
-      }
-
-      // union
-      $allIndexes = $allIndexes + $index;
-    }
-
-    $storage->store($allIndexes);
-
-    return $allIndexes;
+    $content = $scanner->scan($paths, $enforceAbsolutePath);
+    $storage->store($content);
+    return $content;
   }
 }

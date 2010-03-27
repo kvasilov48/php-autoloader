@@ -37,7 +37,7 @@ class autoload_CompressedFileIndexStorage extends autoload_FileIndexStorage
   {
     parent::__construct($fileName);
 
-    if (is_int($compression) == false)
+    if (false == is_int($compression))
     {
       throw new InvalidArgumentException(__METHOD__ . '(): $compression is not an integer! $compression=' . $compression);
     }
@@ -55,10 +55,10 @@ class autoload_CompressedFileIndexStorage extends autoload_FileIndexStorage
     $serialized = parent::beforeStore($content);
     $compressed = gzcompress($serialized, $this->compression);
 
-    if ($compressed === false)
+    if (false === $compressed)
     {
       $error = error_get_last();
-      throw new RuntimeException(__METHOD__ . '(): cannot compressed serialized content! Error message: '.
+      throw new RuntimeException(__METHOD__ . '(): cannot compress serialized content! Error message: '.
                                  $error['message']);
     }
 
@@ -73,10 +73,10 @@ class autoload_CompressedFileIndexStorage extends autoload_FileIndexStorage
   protected function afterLoad($content)
   {
     $uncompressed = gzuncompress($content);
-    if ($uncompressed === false)
+    if (false === $uncompressed)
     {
       $error = error_get_last();
-      throw new RuntimeException(__METHOD__ . '(): cannot uncompressed read content! Error message: '.
+      throw new RuntimeException(__METHOD__ . '(): cannot uncompress read content! Error message: '.
                                  $error['message']);
     }
 

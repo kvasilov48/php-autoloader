@@ -24,20 +24,27 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
   /**
    * @var array
    */
-  private $extensions;
+  private $extensions = array();
   /**
    * @var array
    */
-  private $exclusions;
+  private $exclusions = array();
 
 
   /**
    * Constructs instance of {@link autoload_TokenizerFileScanner}.
    *
    * @param boolean $useDefault Determines whether default extensions and exclusions should be used.
+   *
+   * @throws InvalidArgumentException if $useDefault parameter is invalid.
    */
   public function __construct($useDefault = true)
   {
+    if (false == is_bool($useDefault))
+    {
+      throw new InvalidArgumentException(__METHOD__ . '(): $useDefault is not a boolean! $useDefault=' . $useDefault);
+    }
+
     if ($useDefault)
     {
       $this->extensions = array(self::DEFAULT_EXTENSION_PHP, self::DEFAULT_EXTENSION_INC);
@@ -51,17 +58,17 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
    */
   public function addExtension($extensions)
   {
-    if (true == is_string($extensions))
+    if (is_string($extensions))
     {
       $extensions = array($extensions);
     }
-    if (is_array($extensions) == false)
+    if (false == is_array($extensions))
     {
       throw new InvalidArgumentException(__METHOD__ . '(): $extensions is not an array! $extensions=' . $extensions);
     }
     foreach ($extensions as $extension)
     {
-      if (is_string($extension) == false)
+      if (false == is_string($extension))
       {
         throw new InvalidArgumentException(__METHOD__ . '(): $extension is not a string! $extension=' . $extension);
       }
@@ -75,17 +82,17 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
    */
   public function addExclusion($exclusions)
   {
-    if (true == is_string($exclusions))
+    if (is_string($exclusions))
     {
       $exclusions = array($exclusions);
     }
-    if (is_array($exclusions) == false)
+    if (false == is_array($exclusions))
     {
       throw new InvalidArgumentException(__METHOD__ . '(): $exclusions is not an array! $exclusions=' . $exclusions);
     }
     foreach ($exclusions as $exclusion)
     {
-      if (is_string($exclusion) == false)
+      if (false == is_string($exclusion))
       {
         throw new InvalidArgumentException(__METHOD__ . '(): $exclusion is not a string! $exclusion=' . $exclusion);
       }
@@ -103,21 +110,59 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
   /**
    * @see autoload_FileScanner::scan()
    */
-  public function scan($path, $enforceAbsolutePath = false)
+  public function scan($paths, $enforceAbsolutePath = false)
   {
-    if (is_string($path) == false)
+    if (is_string($paths))
     {
-      throw new InvalidArgumentException(__METHOD__ . '(): $path is not a string! $path=' . $path);
+      $paths = explode(PATH_SEPARATOR, $paths);
     }
-    if (file_exists($path) == false)
+    if (false == is_array($paths))
     {
-      throw new InvalidArgumentException(__METHOD__ . '(): $path is not referencing existing file or directory! $path=' . $path);
+      throw new InvalidArgumentException(__METHOD__ . '(): $paths is not an array! $paths=' . $paths);
     }
-    if (is_bool($enforceAbsolutePath) == false)
+    // check if all paths are strings without PATH_SEPARATOR and they refer to existing directory/file
+    foreach ($paths as $path)
+    {
+      if (false == is_string($path))
+      {
+        throw new InvalidArgumentException(__METHOD__ . '(): $path is not a string! $path=' . $path);
+      }
+      if (false !== strstr($path, PATH_SEPARATOR))
+      {
+        throw new InvalidArgumentException(__METHOD__ . '(): $path contains more than a single path - it is not allowed! $path=' . $path);
+      }
+      if (false == file_exists($path))
+      {
+        throw new InvalidArgumentException(__METHOD__ . '(): $path is not referencing existing file or directory! $path=' . $path);
+      }
+    }
+    if (false == is_bool($enforceAbsolutePath))
     {
       throw new InvalidArgumentException(__METHOD__ . '(): $enforceAbsolutePath is not a boolean! $enforceAbsolutePath=' . $enforceAbsolutePath);
     }
 
+    $class2File = array();
+
+    foreach ($paths as $path)
+    {
+      $index = $this->scanPath($path, $enforceAbsolutePath);
+
+      // detect duplicates - no class name can be present in existing indexes and index from scanned path
+      $intersections = array_intersect_key($index, $class2File);
+      if (false == empty($intersections))
+      {
+        throw new UnexpectedValueException(__METHOD__ . '(): ' . $path . ' contains class names that are already indexed! duplicates: ' . var_export($intersections, true));
+      }
+
+      // union
+      $class2File = $class2File + $index;
+    }
+
+    return $class2File;
+  }
+
+  private function scanPath($path, $enforceAbsolutePath)
+  {
     $class2File = array();
 
     if (is_dir($path))
@@ -173,7 +218,7 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
 
   private function checkIfIncluded($fileName)
   {
-    $included = false;
+    $included = empty($this->extensions);
     foreach ($this->extensions as $extension)
     {
       if (substr($fileName, -strlen($extension)) === $extension)
@@ -204,30 +249,33 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
   private function scanFileContent($fileName, SplFileInfo $fileInfo, array& $class2File)
   {
     $content = file_get_contents($fileName);
-    if ($content !== false)
+
+    if (false === $content)
     {
-      $tokens = token_get_all($content);
-      for($i = 0, $size = count($tokens); $i < $size; $i++)
+      throw new RuntimeException(__METHOD__ . '(): cannot read file: ' . $fileName . '!');
+    }
+
+    $tokens = token_get_all($content);
+    for($i = 0, $size = count($tokens); $i < $size; $i++)
+    {
+      switch($tokens[$i][0])
       {
-        switch($tokens[$i][0])
+        case T_CLASS:
+        case T_INTERFACE:
         {
-          case T_CLASS:
-          case T_INTERFACE:
+          $i += 2; //skip the whitespace token
+          $className = $tokens[$i][1];
+          if (false == isSet($class2File[$className]))
           {
-            $i += 2; //skip the whitespace token
-            $className = $tokens[$i][1];
-            if (false == isSet($class2File[$className]))
-            {
-              $class2File[$className] = $fileName;
-            }
-            else
-            {
-              throw new UnexpectedValueException(__METHOD__ . '(): ' . $className . ' is already defined in file: '
-                                                 . $class2File[$className] . ' Please rename its duplicate found in ' . $fileName);
-            }
+            $class2File[$className] = $fileName;
           }
-          break;
+          else
+          {
+            throw new UnexpectedValueException(__METHOD__ . '(): ' . $className . ' is already defined in file: '
+                                               . $class2File[$className] . ' Please rename its duplicate found in ' . $fileName);
+          }
         }
+        break;
       }
     }
   }

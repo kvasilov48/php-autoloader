@@ -50,6 +50,8 @@ interface autoload_FileScanner
    *
    * @param string|array $extensions Extension (or extensions) of files that should be scanned by
    * this scanner.
+   *
+   * @throws InvalidArgumentException if $extensions parameter is invalid.
    */
   public function addExtension($extensions);
 
@@ -62,17 +64,23 @@ interface autoload_FileScanner
    * Patterns must be compatible with PCER format.
    *
    * @param string|array $exclusions Exclusion pattern (or patterns) of files that should not be scanned by
-   * this scanner.
+   * this scanner. Must be a string or array of strings.
+   *
+   * @throws InvalidArgumentException if $exclusions parameter is invalid.
    */
   public function addExclusion($exclusions);
 
   /**
-   * Scans given path in search of classes and interfaces.
+   * Scans given paths in search of classes and interfaces.
    *
-   * @param string  $path Path that will be scanned.
+   * @param string|array $paths Paths that will be scanned. This parameter may be a string with single path
+   * or paths separated by PHP's PATH_SEPARATOR or it can an array with multiple strings
+   * (each string is treated as single path, no path separator is allowed).
    * @param boolean $enforceAbsolutePath Determines whether returned index should enforce absolute paths.
    *
    * @return array Returns index containing mapping between class names and file names.
+   * @throws UnexpectedValueException if duplicated entries are detected.
+   * @throws InvalidArgumentException if any of the parameters is invalid.
    */
-  public function scan($path, $enforceAbsolutePath = false);
+  public function scan($paths, $enforceAbsolutePath = false);
 }

@@ -45,6 +45,7 @@ class autoload_FileIndexStorage implements autoload_IndexStorage
    * {@link autoload_FileIndexStorage}.
    *
    * @see autoload_IndexStorage::store()
+   * @throws UnexpectedValueException if call to {@link beforeStore()} didn't return string.
    */
   public function store(array $content)
   {
@@ -58,6 +59,11 @@ class autoload_FileIndexStorage implements autoload_IndexStorage
     }
 
     $readyContent = $this->beforeStore($content);
+
+    if (false == is_string($readyContent))
+    {
+      throw new UnexpectedValueException(__METHOD__ . '(): $readyContent is not a string! $readyContent=' . $readyContent);
+    }
 
     $fileObject   = $this->fileName->openFile('w');
     $writtenBytes = $fileObject->fwrite($readyContent);
@@ -91,6 +97,7 @@ class autoload_FileIndexStorage implements autoload_IndexStorage
    * unserializes it and returns it.
    *
    * @see autoload_IndexStorage::load()
+   * @throws UnexpectedValueException if call to {@link afterLoad()} didn't return array.
    */
   public function load()
   {
