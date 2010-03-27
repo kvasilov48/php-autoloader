@@ -129,10 +129,11 @@ class autoload_AutoLoader
    * path separator is allowed).
    * @param autoload_FileScanner $scanner Scanner used to scan the paths.
    * @param autoload_IndexStorage $storage Storage used to store found index content.
+   * @param boolean $enforceAbsolutePath Determines whether paths should be always stored as absolute.
    *
    * @return array Index content that has been found and stored.
    */
-  public function scanAndStore($paths, autoload_FileScanner $scanner, autoload_IndexStorage $storage)
+  public function scanAndStore($paths, autoload_FileScanner $scanner, autoload_IndexStorage $storage, $enforceAbsolutePath = false)
   {
     if (is_string($paths))
     {
@@ -153,7 +154,7 @@ class autoload_AutoLoader
     $allIndexes = array();
     foreach ($paths as $path)
     {
-      $index = $scanner->scan($path);
+      $index = $scanner->scan($path, $enforceAbsolutePath);
 
       // detect duplicates - no class name can be present in existing indexes and index from scanned path
       $intersections = array_intersect_key($index, $allIndexes);
