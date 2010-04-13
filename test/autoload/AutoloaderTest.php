@@ -422,9 +422,12 @@ class test_autoload_AutoloaderTest extends PHPUnit_Framework_TestCase
 
   public function testClassAutoLoad_TerminatesDueToAssertion()
   {
-    function assertCallback($file, $line, $message)
+    if (false == function_exists('assertCallback'))
     {
-      throw new Exception('assert');
+      function assertCallback($file, $line, $message)
+      {
+        throw new Exception('assert');
+      }
     }
     assert_options(ASSERT_WARNING,  0);
     assert_options(ASSERT_CALLBACK, 'assertCallback');
