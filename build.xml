@@ -2,9 +2,12 @@
 <project name="autoloader" default="generate" basedir=".">
 
   <!-- Properties -->
+  <property name="project.version"               value="1.0.0"/>
+  <property name="project.buildFile"             value="build.xml"/>
   <property name="project.dataDir"               value="data"/>
   <property name="project.docDir"                value="doc"/>
   <property name="project.indexFile"             value="autoloader.index.idx"/>
+  <property name="project.releaseFile"           value="autoloader.${project.version}.zip"/>
   <property name="project.reportDir"             value="report"/>
   <property name="project.report.testDir"        value="${project.reportDir}/test"/>
   <property name="project.report.coverageDir"    value="${project.reportDir}/coverage"/>
@@ -16,6 +19,16 @@
   <!-- File sets -->
   <fileset dir="${project.docDir}" id="project.files.apidoc">
     <include name="**"/>
+  </fileset>
+  
+  <fileset dir="." id="project.files.release">
+    <include name="${project.buildFile}"/>
+    <include name="${project.dataDir}/**"/>
+    <include name="${project.docDir}/**"/>
+    <include name="${project.srcDir}/**"/>
+    <include name="${project.testDir}/**"/>
+    <exclude name="${project.docDir}/errors.html"/>
+    <exclude name="."/>
   </fileset>
   
   <fileset dir="." id="project.files.report">
@@ -141,5 +154,32 @@
             quiet="true">
       <fileset refId="project.files.src"/>
     </phpdoc>
+  </target>
+  
+  <!--
+    Target performing full release for this project:
+    1. Run all tests, halts on failures and errors
+    2. Generates API docs
+    3. Creates ZIP file with all relevant project files
+  -->
+  <target name="release" depends="init">
+    <!-- Run unit tests, do not generate report -->
+    <phpunit haltonerror="true" haltonfailure="true">
+      <formatter usefile="false" type="plain" />
+      <batchtest>
+        <fileset refid="project.files.test"/>
+      </batchtest>
+    </phpunit>
+    
+    <!-- Generate API docs -->
+    <phingcall target="apidoc"/>
+    
+    <!-- Delete ZIP file -->
+    <delete file="${project.releaseFile}" quiet="true"/>
+    
+    <!-- Create ZIP file -->
+    <zip destfile="${project.releaseFile}" prefix="autoloader/">
+      <fileset refId="project.files.release"/>
+    </zip>
   </target>
 </project>
