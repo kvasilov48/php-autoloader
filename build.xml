@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="autoloader" default="generate" basedir=".">
+<project name="php-autoloader" default="generate" basedir=".">
 
   <!-- Properties -->
   <property name="project.version"               value="1.0.0"/>
@@ -178,7 +178,7 @@
     <delete file="${project.releaseFile}" quiet="true"/>
     
     <!-- Create ZIP file -->
-    <zip destfile="${project.releaseFile}" prefix="autoloader/">
+    <zip destfile="${project.releaseFile}" prefix="php_autoloader/">
       <fileset refId="project.files.release"/>
     </zip>
   </target>
