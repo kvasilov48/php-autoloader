@@ -56,15 +56,38 @@ class autoload_AutoLoader
    *
    * @return boolean Returns true if index storage was added, false otherwise.
    */
-  public function addIndexStorage(autoload_IndexStorage $storage)
+  public function addIndexStorage(autoload_IndexStorage $storage, $checkUniqueness = false)
   {
+    if (false == is_bool($checkUniqueness))
+    {
+      throw new InvalidArgumentException(__METHOD__ . '(): $checkUniqueness is not a boolean! $checkUniqueness=' . $checkUniqueness);
+    }
+
     $added = false;
     if (false == in_array($storage, $this->storages))
     {
-      $this->storages[] = $storage;
       $content = $storage->load();
-      $this->index = array_merge($this->index, $content);
 
+      if (false == is_array($content))
+      {
+        throw new UnexpectedValueException(__METHOD__ . '(): autoload_IndexStorage::load() returned value of non-array type! Returned $content=' . $content);
+      }
+
+      if (false == empty($content))
+      {
+        if ($checkUniqueness)
+        {
+          $intersections = array_intersect_key($this->index, $content);
+          if (false == empty($intersections))
+          {
+            throw new UnexpectedValueException(__METHOD__ . '(): Specified index storage contains class names that are already present in the index! duplicates: ' . var_export($intersections, true));
+          }
+        }
+
+        $this->index = array_merge($this->index, $content);
+      }
+
+      $this->storages[] = $storage;
       $added = true;
     }
 
@@ -73,7 +96,7 @@ class autoload_AutoLoader
 
 
   /**
-   * Loads content from all defined index storages and registers this class on the SPL autoloader stack.
+   * Registers this class on the SPL autoloader stack.
    *
    * @return boolean Returns true if registration was successful, false otherwise.
    */
@@ -104,19 +127,19 @@ class autoload_AutoLoader
       return false;
     }
 
-    $path = $this->searchFor($className);
+    $path = isSet($this->index[$className])? $this->index[$className] : null;
 
+    $found = false;
     if ($path !== null)
     {
-      require_once $path;
+      if (file_exists($path))
+      {
+        require_once $path;
+        $found = true;
+      }
     }
 
-    return true;
-  }
-
-  private function searchFor($className)
-  {
-    return isSet($this->index[$className])? $this->index[$className] : null;
+    return $found;
   }
 
   /**
@@ -140,5 +163,25 @@ class autoload_AutoLoader
     $content = $scanner->scan($paths, $enforceAbsolutePath);
     $storage->store($content);
     return $content;
+  }
+
+  /**
+   * Gets array with all index storages.
+   *
+   * @return array Returns array with all index storages.
+   */
+  public function getIndexStorages()
+  {
+    return $this->storages;
+  }
+
+  /**
+   * Gets array representing current index.
+   *
+   * @return array Returns array representing current index.
+   */
+  public function getIndex()
+  {
+    return $this->index;
   }
 }
