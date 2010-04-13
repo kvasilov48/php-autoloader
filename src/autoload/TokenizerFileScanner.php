@@ -103,7 +103,7 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
 
   private static function mergeUniquely(array& $array1, array& $array2)
   {
-    $diff = array_diff($array1, $array2);
+    $diff = array_diff($array2, $array1);
     return array_merge($array1, $diff);
   }
 
@@ -288,5 +288,26 @@ class autoload_TokenizerFileScanner implements autoload_FileScanner
   private function dos2unix($fileName)
   {
     return preg_replace('/\\\/', '/', $fileName);
+  }
+
+  /**
+   * Gets all extensions used by this {@link autoload_TokenizerFileScanner}.
+   *
+   * @return array Returns array with all extensions used by this {@link autoload_TokenizerFileScanner}.
+   */
+  public function getExtensions()
+  {
+    return $this->extensions;
+  }
+
+  /**
+   * Gets all exclusion patterns used by this {@link autoload_TokenizerFileScanner}.
+   *
+   * @return array Returns array with all exclusion patterns used by this
+   * {@link autoload_TokenizerFileScanner}.
+   */
+  public function getExclusions()
+  {
+    return $this->exclusions;
   }
 }

@@ -51,11 +51,11 @@ class autoload_FileIndexStorage implements autoload_IndexStorage
   {
     if ($this->fileName->isDir())
     {
-      throw new RuntimeException(__METHOD__ . '(): $fileName is not a file! $fileName=' . $fileName);
+      throw new RuntimeException(__METHOD__ . '(): $fileName is not a file! $fileName=' . $this->fileName);
     }
     if ($this->fileName->isFile() && (false == $this->fileName->isWritable()))
     {
-      throw new RuntimeException(__METHOD__ . '(): $fileName is not writable! $fileName=' . $fileName);
+      throw new RuntimeException(__METHOD__ . '(): $fileName is not writable! $fileName=' . $this->fileName);
     }
 
     $readyContent = $this->beforeStore($content);
@@ -71,7 +71,7 @@ class autoload_FileIndexStorage implements autoload_IndexStorage
     if ($writtenBytes != strlen($readyContent))
     {
       throw new RuntimeException(__METHOD__ . '(): invalid number of bytes written! Expected: '.
-                                 strlen($compressed) . ' Actual: ' . $writtenBytes);
+                                 strlen($readyContent) . ' Actual: ' . $writtenBytes);
     }
   }
 
@@ -103,11 +103,11 @@ class autoload_FileIndexStorage implements autoload_IndexStorage
   {
     if ($this->fileName->isDir())
     {
-      throw new RuntimeException(__METHOD__ . '(): $fileName is not a file! $fileName=' . $fileName);
+      throw new RuntimeException(__METHOD__ . '(): $fileName is not a file! $fileName=' . $this->fileName);
     }
     if ($this->fileName->isFile() && (false == $this->fileName->isReadable()))
     {
-      throw new RuntimeException(__METHOD__ . '(): $fileName is not readable! $fileName=' . $fileName);
+      throw new RuntimeException(__METHOD__ . '(): $fileName is not readable! $fileName=' . $this->fileName);
     }
 
     $fileObject = $this->fileName->openFile('r');
@@ -134,12 +134,20 @@ class autoload_FileIndexStorage implements autoload_IndexStorage
    *
    * Default implementation assumes that file content is a serialized array so it performs unserialization.
    *
+   * In case of empty file empty array is returned.
+   *
    * @param string $content Index content loaded from file as string.
    *
    * @return array Returns array with index content.
    */
   protected function afterLoad($content)
   {
-    return unserialize($content);
+    $loaded = array();
+    if (strlen($content) > 0)
+    {
+      $loaded = unserialize($content);
+    }
+
+    return $loaded;
   }
 }
