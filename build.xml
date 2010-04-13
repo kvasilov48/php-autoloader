@@ -49,7 +49,7 @@
   -->
   <!-- Autoloader index generate -->
   <target name="generate" depends="init">
-    <autoloader.generate indexPath="${project.indexFile}" compression="0">
+    <autoloader.generate indexPath="${project.indexFile}" compression="9">
       <fileset refid="project.files.src"/>
     </autoloader.generate>
   </target>
