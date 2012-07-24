@@ -1,2 +1,3 @@
 relre:^report/.*$
 relre:^doc/.*$
+relre:^.project*$
