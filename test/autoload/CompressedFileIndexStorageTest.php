@@ -9,7 +9,6 @@
  */
 
 
-require_once 'PHPUnit/Framework.php';
 require_once 'src/autoload/CompressedFileIndexStorage.php';
 
 
