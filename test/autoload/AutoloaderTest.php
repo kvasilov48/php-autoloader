@@ -9,7 +9,6 @@
  */
 
 
-require_once 'PHPUnit/Framework.php';
 require_once 'src/autoload/AutoLoader.php';
 
 
@@ -31,17 +30,22 @@ class test_autoload_AutoloaderTest extends PHPUnit_Framework_TestCase
                                 'ClassB' => './test/cases/case1/File4_ClassB_NonDefaultExtension.php.class',
                                 'InterfaceB' => './test/cases/case1/File6_InterfaceB_NonDefaultExtension.php.interface',);
 
-    $this->removeAllAutoloadCallbacks();
+    $this->removeAllAutoloaderCallbacks();
   }
 
-  private function removeAllAutoloadCallbacks()
+  private function removeAllAutoloaderCallbacks()
   {
     $register = spl_autoload_functions();
+
     if (false == empty($register))
     {
       foreach ($register as $callback)
       {
-        spl_autoload_unregister($callback);
+        if (is_array($callback) && $callback[1] === 'classAutoLoad') {
+          spl_autoload_unregister($callback);
+        } else if ($callback == '__autoload') {
+          spl_autoload_unregister($callback);
+        }
       }
     }
   }
@@ -49,71 +53,75 @@ class test_autoload_AutoloaderTest extends PHPUnit_Framework_TestCase
   public function testConstruct_Default()
   {
     // spl_autoload_functions might return false (SPL stack not initialised) or empty array
-    $register = spl_autoload_functions();
-    // ..but empty() will cover both cases
-    self::assertTrue(empty($register));
+    $registerBefore = spl_autoload_functions();
 
     new autoload_AutoLoader();
 
-    $register = spl_autoload_functions();
-    self::assertTrue(empty($register));
+    $registerAfter = spl_autoload_functions();
+    self::assertSame($registerBefore, $registerAfter);
   }
 
-  public function testRegister_WithAndWithoutAutoload()
+  public function testRegister_WithoutAutoload()
   {
-    // part 1, no __autoload defined
-    $register = spl_autoload_functions();
-    self::assertTrue(empty($register));
-
+    // no __autoload defined
+    $autoloadFunctionsBefore = spl_autoload_functions();
     $autoloader = new autoload_AutoLoader();
+
     self::assertTrue($autoloader->register());
 
-    $register = spl_autoload_functions();
-    self::assertEquals(1, count($register));
-    self::assertEquals(array($autoloader, 'classAutoLoad'), $register[0]);
+    $autoloadFunctionsAfter = spl_autoload_functions();
+    $numberOfAutoloadFunctions = count($autoloadFunctionsAfter);
+    self::assertEquals(count($autoloadFunctionsBefore) + 1, $numberOfAutoloadFunctions);
+    self::assertEquals(array($autoloader, 'classAutoLoad'), $autoloadFunctionsAfter[$numberOfAutoloadFunctions - 1]);
+  }
 
-    // clean-up, part 1 ended
-    $this->removeAllAutoloadCallbacks();
-
-    // part 2, __autoload is defined
-
+  /**
+   * @depends testRegister_WithoutAutoload
+   */
+  public function testRegister_WithAutoload()
+  {
+    // __autoload is defined
     function __autoload($className)
     {
       return true;
     }
 
+    $autoloadFunctionsBefore = spl_autoload_functions();
     $autoloader = new autoload_AutoLoader();
+
     self::assertTrue($autoloader->register());
 
-    $register = spl_autoload_functions();
-    self::assertEquals(2, count($register));
-    self::assertEquals('__autoload', $register[0]);
-    self::assertEquals(array($autoloader, 'classAutoLoad'), $register[1]);
+    $autoloadFunctionsAfter = spl_autoload_functions();
+    $numberOfAutoloadFunctions = count($autoloadFunctionsAfter);
+    self::assertEquals(count($autoloadFunctionsBefore) + 2, $numberOfAutoloadFunctions);
+    self::assertEquals('__autoload', $autoloadFunctionsAfter[$numberOfAutoloadFunctions - 2]);
+    self::assertEquals(array($autoloader, 'classAutoLoad'), $autoloadFunctionsAfter[$numberOfAutoloadFunctions - 1]);
   }
 
   public function testRegister_TwoDifferentAutoloaders()
   {
-    $register = spl_autoload_functions();
-    self::assertTrue(empty($register));
+    $autoloadFunctionsBefore = spl_autoload_functions();
 
-    // ok, __autoload might or might NOT be defined in testRegister_WithAndWithoutAutoload (depends on unit tests
+    // ok, __autoload might or might NOT be defined in testRegister_WithAutoload (depends on unit tests
     // execution order) so we have to take that into account
     $autoloadModifier = function_exists('__autoload')? 1 : 0;
 
     $autoloader1 = new autoload_AutoLoader();
     self::assertTrue($autoloader1->register());
 
-    $register = spl_autoload_functions();
-    self::assertEquals($autoloadModifier + 1, count($register));
-    self::assertEquals(array($autoloader1, 'classAutoLoad'), $register[$autoloadModifier]);
+    $autoloadFunctionsAfter = spl_autoload_functions();
+    $numberOfAutoloadFunctions = count($autoloadFunctionsAfter);
+    self::assertEquals(count($autoloadFunctionsBefore) + $autoloadModifier + 1, $numberOfAutoloadFunctions);
+    self::assertEquals(array($autoloader1, 'classAutoLoad'), $autoloadFunctionsAfter[$numberOfAutoloadFunctions - 1]);
 
     $autoloader2 = new autoload_AutoLoader();
     self::assertTrue($autoloader2->register());
 
-    $register = spl_autoload_functions();
-    self::assertEquals($autoloadModifier + 2, count($register));
-    self::assertEquals(array($autoloader1, 'classAutoLoad'), $register[$autoloadModifier]);
-    self::assertEquals(array($autoloader2, 'classAutoLoad'), $register[$autoloadModifier + 1]);
+    $autoloadFunctionsAfter2 = spl_autoload_functions();
+    $numberOfAutoloadFunctions2 = count($autoloadFunctionsAfter2);
+    self::assertEquals($numberOfAutoloadFunctions + $autoloadModifier, $numberOfAutoloadFunctions2);
+    self::assertEquals(array($autoloader1, 'classAutoLoad'), $autoloadFunctionsAfter2[$numberOfAutoloadFunctions2 - 2]);
+    self::assertEquals(array($autoloader2, 'classAutoLoad'), $autoloadFunctionsAfter2[$numberOfAutoloadFunctions2 - 1]);
   }
 
   public function testAddIndexStorage_EmptyStorage()
