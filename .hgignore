@@ -2,4 +2,4 @@ relre:^report/.*$
 relre:^doc/.*$
 relre:^\.project$
 relre:^\.buildpath$
-relre:^/\.settings$
+relre:^/\.settings/.*$
