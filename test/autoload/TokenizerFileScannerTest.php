@@ -98,6 +98,32 @@ class test_autoload_TokenizerFileScannerTest extends PHPUnit_Framework_TestCase
     self::assertSame(array($extension), $scanner->getExtensions());
   }
 
+  public function testAddExtension_AddArrayOfExtensionsWithoutDuplicate()
+  {
+    $extension1 = array('a', 'b');
+    $extension2 = array('c', 'd');
+    $scanner = new autoload_TokenizerFileScanner(false);
+
+    // two array additions
+    $scanner->addExtension($extension1);
+    $scanner->addExtension($extension2);
+
+    self::assertSame(array('a', 'b', 'c', 'd'), $scanner->getExtensions());
+  }
+
+  public function testAddExtension_AddArrayOfExtensionsWithDuplicate()
+  {
+    $extension1 = array('a', 'b');
+    $extension2 = array('b', 'c');
+    $scanner = new autoload_TokenizerFileScanner(false);
+
+    // two array additions
+    $scanner->addExtension($extension1);
+    $scanner->addExtension($extension2);
+
+    self::assertSame(array('a', 'b', 'c'), $scanner->getExtensions());
+  }
+
   /**
    * @expectedException InvalidArgumentException
    */
@@ -163,6 +189,32 @@ class test_autoload_TokenizerFileScannerTest extends PHPUnit_Framework_TestCase
   {
     $scanner = new autoload_TokenizerFileScanner();
     $scanner->addExclusion(array('/valid.pattern/', false));
+  }
+
+  public function testAddExclusion_AddArrayOfExclusionsWithoutDuplicate()
+  {
+    $extension1 = array('a', 'b');
+    $extension2 = array('c', 'd');
+    $scanner = new autoload_TokenizerFileScanner(false);
+
+    // two array additions
+    $scanner->addExclusion($extension1);
+    $scanner->addExclusion($extension2);
+
+    self::assertSame(array('a', 'b', 'c', 'd'), $scanner->getExclusions());
+  }
+
+  public function testAddExclusion_AddArrayOfExclusionsWithDuplicate()
+  {
+    $extension1 = array('a', 'b');
+    $extension2 = array('b', 'c');
+    $scanner = new autoload_TokenizerFileScanner(false);
+
+    // two array additions
+    $scanner->addExclusion($extension1);
+    $scanner->addExclusion($extension2);
+
+    self::assertSame(array('a', 'b', 'c'), $scanner->getExclusions());
   }
 
   /**
