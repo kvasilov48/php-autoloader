@@ -7,7 +7,7 @@
   <property name="project.dataDir"               value="data"/>
   <property name="project.docDir"                value="doc"/>
   <property name="project.indexFile"             value="autoloader.index.idx"/>
-  <property name="project.releaseFile"           value="autoloader.${project.version}.zip"/>
+  <property name="project.releaseFile"           value="php-autoloader.${project.version}.zip"/>
   <property name="project.reportDir"             value="report"/>
   <property name="project.report.testDir"        value="${project.reportDir}/test"/>
   <property name="project.report.coverageDir"    value="${project.reportDir}/coverage"/>
