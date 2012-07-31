@@ -2,7 +2,7 @@
 <project name="php-autoloader" default="generate" basedir=".">
 
   <!-- Properties -->
-  <property name="project.version"               value="v1.0.0"/>
+  <property name="project.version"               value="v1.0.1"/>
   <property name="project.buildFile"             value="build.xml"/>
   <property name="project.dataDir"               value="data"/>
   <property name="project.docDir"                value="doc"/>
