@@ -61,22 +61,11 @@ class test_autoload_AutoloaderTest extends PHPUnit_Framework_TestCase
     self::assertSame($registerBefore, $registerAfter);
   }
 
-  public function testRegister_WithoutAutoload()
-  {
-    // no __autoload defined
-    $autoloadFunctionsBefore = spl_autoload_functions();
-    $autoloader = new autoload_AutoLoader();
-
-    self::assertTrue($autoloader->register());
-
-    $autoloadFunctionsAfter = spl_autoload_functions();
-    $numberOfAutoloadFunctions = count($autoloadFunctionsAfter);
-    self::assertEquals(count($autoloadFunctionsBefore) + 1, $numberOfAutoloadFunctions);
-    self::assertEquals(array($autoloader, 'classAutoLoad'), $autoloadFunctionsAfter[$numberOfAutoloadFunctions - 1]);
-  }
-
   /**
-   * @depends testRegister_WithoutAutoload
+   * As code depends on __autoload function existence it is best to run test for the case when this function exist
+   * in separate process as this will not affect other tests.
+   *
+   * @runInSeparateProcess
    */
   public function testRegister_WithAutoload()
   {
@@ -98,20 +87,30 @@ class test_autoload_AutoloaderTest extends PHPUnit_Framework_TestCase
     self::assertEquals(array($autoloader, 'classAutoLoad'), $autoloadFunctionsAfter[$numberOfAutoloadFunctions - 1]);
   }
 
+  public function testRegister_WithoutAutoload()
+  {
+    // no __autoload defined
+    $autoloadFunctionsBefore = spl_autoload_functions();
+    $autoloader = new autoload_AutoLoader();
+
+    self::assertTrue($autoloader->register());
+
+    $autoloadFunctionsAfter = spl_autoload_functions();
+    $numberOfAutoloadFunctions = count($autoloadFunctionsAfter);
+    self::assertEquals(count($autoloadFunctionsBefore) + 1, $numberOfAutoloadFunctions);
+    self::assertEquals(array($autoloader, 'classAutoLoad'), $autoloadFunctionsAfter[$numberOfAutoloadFunctions - 1]);
+  }
+
   public function testRegister_TwoDifferentAutoloaders()
   {
     $autoloadFunctionsBefore = spl_autoload_functions();
-
-    // ok, __autoload might or might NOT be defined in testRegister_WithAutoload (depends on unit tests
-    // execution order) so we have to take that into account
-    $autoloadModifier = function_exists('__autoload')? 1 : 0;
 
     $autoloader1 = new autoload_AutoLoader();
     self::assertTrue($autoloader1->register());
 
     $autoloadFunctionsAfter = spl_autoload_functions();
     $numberOfAutoloadFunctions = count($autoloadFunctionsAfter);
-    self::assertEquals(count($autoloadFunctionsBefore) + $autoloadModifier + 1, $numberOfAutoloadFunctions);
+    self::assertEquals(count($autoloadFunctionsBefore) + 1, $numberOfAutoloadFunctions);
     self::assertEquals(array($autoloader1, 'classAutoLoad'), $autoloadFunctionsAfter[$numberOfAutoloadFunctions - 1]);
 
     $autoloader2 = new autoload_AutoLoader();
@@ -119,7 +118,7 @@ class test_autoload_AutoloaderTest extends PHPUnit_Framework_TestCase
 
     $autoloadFunctionsAfter2 = spl_autoload_functions();
     $numberOfAutoloadFunctions2 = count($autoloadFunctionsAfter2);
-    self::assertEquals($numberOfAutoloadFunctions + $autoloadModifier, $numberOfAutoloadFunctions2);
+    self::assertEquals($numberOfAutoloadFunctions + 1, $numberOfAutoloadFunctions2);
     self::assertEquals(array($autoloader1, 'classAutoLoad'), $autoloadFunctionsAfter2[$numberOfAutoloadFunctions2 - 2]);
     self::assertEquals(array($autoloader2, 'classAutoLoad'), $autoloadFunctionsAfter2[$numberOfAutoloadFunctions2 - 1]);
   }
